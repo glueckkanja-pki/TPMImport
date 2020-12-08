@@ -1,18 +1,25 @@
 ﻿using System;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using System.Security;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using DotNetCode;
+using Microsoft.Win32.SafeHandles;
 
 namespace TPMImport
 {
     class Program
     {
+        [SupportedOSPlatform("windows")]
         static void Main(string[] args)
         {
             Console.WriteLine("PFX to TPM Importer");
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: TPMImport [-user] PFXPath PFXPassword");
+                Console.WriteLine("Usage: TPMImport [-user] [-v] PFXPath PFXPassword");
                 return;
             }
 
@@ -50,9 +57,9 @@ namespace TPMImport
             //}
 
             X509Certificate2 cert = new X509Certificate2(sPFXPath, sPassword, X509KeyStorageFlags.Exportable);
-            RSACng rsaCNG = new RSACng();
-            rsaCNG.FromXmlString(cert.GetRSAPrivateKey().ToXmlString(true));
-            var keyData = rsaCNG.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
+            RSACng keyFromPFx = new RSACng();
+            keyFromPFx.FromXmlString(cert.GetRSAPrivateKey().ToXmlString(true));
+            var keyData = keyFromPFx.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
             var keyParams = new CngKeyCreationParameters
             {
                 ExportPolicy = CngExportPolicies.None,
@@ -62,22 +69,33 @@ namespace TPMImport
                 //CngProvider.MicrosoftSoftwareKeyStorageProvider
             };
             keyParams.Parameters.Add(new CngProperty(CngKeyBlobFormat.GenericPrivateBlob.Format, keyData, CngPropertyOptions.None));
-            var key = CngKey.Create(CngAlgorithm.Rsa, $"TPM-Import-Key-{cert.Thumbprint}", keyParams);
+            //keyParams.Parameters.Add(new CngProperty("Key Type", new byte[] { 0, 0, 0, 32 }, CngPropertyOptions.None));
+
+
+
+            //RawSecurityDescriptor sdEveryoneCanRead = new RawSecurityDescriptor("A;;GRFR;;;S-1-1-0");
+            //byte[] binSDL = new byte[sdEveryoneCanRead.BinaryLength];
+            //sdEveryoneCanRead.GetBinaryForm(binSDL, 0);
+            //keyParams.Parameters.Add(new CngProperty("Security Descr", binSDL, (CngPropertyOptions) 0x44)); // 0x44 = DACL_SECURITY_INFORMATION | NCRYPT_SILENT_FLAG
+
+            CngKey key = CngKey.Create(CngAlgorithm.Rsa, $"TPM-Import-Key-{cert.Thumbprint}", keyParams);
+            //            key = CngKey.Open($"TPM-Import-Key-{cert.Thumbprint}", new CngProvider("Microsoft Platform Crypto Provider"), CngKeyOpenOptions.MachineKey);
+
+            CngProperty propMT = key.GetProperty("Key Type", CngPropertyOptions.None);
+            byte[] baMT = propMT.GetValue();
 
             if (fVerbose)
             {
-                Console.WriteLine($"Key Is Closed: {key.Handle.IsClosed}; Is Invalid: {key.Handle.IsInvalid}; Export Policy: {key.ExportPolicy}; Is Ephemeral: {key.IsEphemeral}");
+                Console.WriteLine($"Key is reported as Machine Key (always false): {key.IsMachineKey}; Key Is Closed: {key.Handle.IsClosed}; Is Invalid: {key.Handle.IsInvalid}; Export Policy: {key.ExportPolicy}; Is Ephemeral: {key.IsEphemeral}");
             }
 
-            rsaCNG = new RSACng(key);
             X509Certificate2 certOnly = new X509Certificate2(cert.Export(X509ContentType.Cert));
-            certOnly = certOnly.CopyWithPrivateKey(rsaCNG);
+            certOnly = CertificateExtensionsCommon.CopyWithPersistedCngKeyFixed(certOnly, key);
             X509Store store = new X509Store(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite);
             store.Add(certOnly);
             store.Close();
 
         }
-
-    }
+     }
 }
