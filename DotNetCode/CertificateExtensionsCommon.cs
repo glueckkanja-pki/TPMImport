@@ -12,7 +12,7 @@ namespace DotNetCode
 		{
 			CngProperty propMT = cngKey.GetProperty("Key Type", CngPropertyOptions.None);
 			byte[] baMT = propMT.GetValue();
-			return baMT[3] == 1; // according to https://docs.microsoft.com/en-us/windows/win32/seccng/key-storage-property-identifiers, which defines NCRYPT_MACHINE_KEY_FLAG differently than ncrypt.h
+			return (baMT[0] & 1) == 1; // according to https://docs.microsoft.com/en-us/windows/win32/seccng/key-storage-property-identifiers, which defines NCRYPT_MACHINE_KEY_FLAG differently than ncrypt.h
 		}
 
 		[SupportedOSPlatform("windows")]
@@ -31,7 +31,7 @@ namespace DotNetCode
 			X509Native.CRYPT_KEY_PROV_INFO crypt_KEY_PROV_INFO = default(X509Native.CRYPT_KEY_PROV_INFO);
 			crypt_KEY_PROV_INFO.pwszContainerName = cngKey.KeyName;
 			crypt_KEY_PROV_INFO.pwszProvName = cngKey.Provider.Provider;
-			crypt_KEY_PROV_INFO.dwFlags = (isMachineKey ? 32 : 0);
+			crypt_KEY_PROV_INFO.dwFlags = (int)(isMachineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None);
 			crypt_KEY_PROV_INFO.dwKeySpec = dwKeySpec;
 			using (SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate))
 			{
@@ -51,37 +51,11 @@ namespace DotNetCode
 			{
 				return 0;
 			}
-			int result;
-			try
+			CngKeyOpenOptions openOptions = machineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None;
+			using (CngKey.Open(keyName, provider, openOptions))
 			{
-				CngKeyOpenOptions openOptions = machineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None;
-				using (CngKey.Open(keyName, provider, openOptions))
-				{
-					result = 0;
-				}
-			}
-			catch (CryptographicException)
-			{
-				CspParameters cspParameters = new CspParameters
-				{
-					ProviderName = provider.Provider,
-					KeyContainerName = keyName,
-					Flags = CspProviderFlags.UseExistingKey,
-					KeyNumber = 2
-				};
-				if (machineKey)
-				{
-					cspParameters.Flags |= CspProviderFlags.UseMachineKeyStore;
-				}
 				return 0;
-				//int num;
-				//if (!CertificateExtensionsCommon.TryGuessKeySpec(cspParameters, algorithmGroup, out num))
-				//{
-				//	throw;
-				//}
-				//result = num;
 			}
-			return result;
 		}
 
 		//private static bool TryGuessKeySpec(CspParameters cspParameters, CngAlgorithmGroup algorithmGroup, out int keySpec)
