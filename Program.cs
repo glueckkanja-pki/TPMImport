@@ -31,8 +31,11 @@ namespace TPMImport
             if (fVerbose) ++iArgPos;
 
             string sPFXPath = args[iArgPos++];
-            string sPassword = args[iArgPos++];
-                
+
+            string sPassword = "";
+            if (args.Length > iArgPos)
+                sPassword = args[iArgPos++];
+
             //var parameters = new CngKeyCreationParameters()
             //{
             //    Provider = 
