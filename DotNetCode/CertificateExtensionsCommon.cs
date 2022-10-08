@@ -25,7 +25,6 @@ namespace DotNetCode
 			}
 			X509Certificate2 x509Certificate = new X509Certificate2(publicCert.RawData);
 			bool isMachineKey = IsMachineKey(cngKey);
-			int dwKeySpec = CertificateExtensionsCommon.GuessKeySpec(cngKey.Provider, cngKey.KeyName, isMachineKey, cngKey.AlgorithmGroup);
 			X509Native.CRYPT_KEY_PROV_INFO crypt_KEY_PROV_INFO = default(X509Native.CRYPT_KEY_PROV_INFO);
 			crypt_KEY_PROV_INFO.pwszContainerName = cngKey.KeyName;
 			crypt_KEY_PROV_INFO.pwszProvName = cngKey.Provider.Provider;
@@ -33,7 +32,7 @@ namespace DotNetCode
 			crypt_KEY_PROV_INFO.dwFlags = (int)(isMachineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None);
 			crypt_KEY_PROV_INFO.cProvParam = 0;
 			crypt_KEY_PROV_INFO.rgProvParam = System.IntPtr.Zero;
-			crypt_KEY_PROV_INFO.dwKeySpec = dwKeySpec;
+			crypt_KEY_PROV_INFO.dwKeySpec = CertificateExtensionsCommon.GuessKeySpec(cngKey.Provider, cngKey.KeyName, isMachineKey, cngKey.AlgorithmGroup);
 			using (SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate))
 			{
 				if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
