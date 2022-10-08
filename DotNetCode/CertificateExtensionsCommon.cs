@@ -31,8 +31,11 @@ namespace DotNetCode
 			X509Native.CRYPT_KEY_PROV_INFO crypt_KEY_PROV_INFO = default(X509Native.CRYPT_KEY_PROV_INFO);
 			crypt_KEY_PROV_INFO.pwszContainerName = cngKey.KeyName;
 			crypt_KEY_PROV_INFO.pwszProvName = cngKey.Provider.Provider;
+			crypt_KEY_PROV_INFO.dwProvType = 0;
 			crypt_KEY_PROV_INFO.dwFlags = (int)(isMachineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None);
-			crypt_KEY_PROV_INFO.dwKeySpec = dwKeySpec;
+			crypt_KEY_PROV_INFO.cProvParam = 0;
+			crypt_KEY_PROV_INFO.rgProvParam = System.IntPtr.Zero;
+            crypt_KEY_PROV_INFO.dwKeySpec = dwKeySpec;
 			using (SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate))
 			{
 				if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
