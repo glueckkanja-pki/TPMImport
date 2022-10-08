@@ -24,10 +24,8 @@ namespace DotNetCode
 				return null;
 			}
 			X509Certificate2 x509Certificate = new X509Certificate2(publicCert.RawData);
-			CngProvider provider = cngKey.Provider;
-			string keyName = cngKey.KeyName;
 			bool isMachineKey = IsMachineKey(cngKey);
-			int dwKeySpec = CertificateExtensionsCommon.GuessKeySpec(provider, keyName, isMachineKey, cngKey.AlgorithmGroup);
+			int dwKeySpec = CertificateExtensionsCommon.GuessKeySpec(cngKey.Provider, cngKey.KeyName, isMachineKey, cngKey.AlgorithmGroup);
 			X509Native.CRYPT_KEY_PROV_INFO crypt_KEY_PROV_INFO = default(X509Native.CRYPT_KEY_PROV_INFO);
 			crypt_KEY_PROV_INFO.pwszContainerName = cngKey.KeyName;
 			crypt_KEY_PROV_INFO.pwszProvName = cngKey.Provider.Provider;
