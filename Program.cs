@@ -13,6 +13,40 @@ namespace TPMImport
 {
     internal class Program
     {
+        /** Delete both the certificate & private key in TPM */
+        static void DeleteCngCertificate(bool fUser, string Thumbprint)
+        {
+            using (X509Store store = new X509Store(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine))
+            {
+                store.Open(OpenFlags.ReadWrite);
+
+                // search for a matching CNG certificate stored in TPM
+                foreach (X509Certificate2 cert in store.Certificates)
+                {
+                    if (cert.Thumbprint != Thumbprint)
+                        continue; // thumbprint mismatch
+
+                    if (!cert.HasPrivateKey)
+                        continue; // private key missing
+
+                    RSACng priv_key = (RSACng)cert.PrivateKey;
+                    if (priv_key == null)
+                        continue; // unsupported key type
+
+                    if (priv_key.Key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
+                        continue; // key not stored in TPM
+
+                    Console.WriteLine("Deleting " + cert.Subject + " with name " + priv_key.Key.KeyName + "\n");
+                    // delete certificate
+                    store.Remove(cert);
+                    // delete associated CNG key
+                    priv_key.Key.Delete();
+
+                    return;
+                }
+            }
+        }
+
         [SupportedOSPlatform("windows")]
         private static void Main(string[] args)
         {
@@ -20,7 +54,7 @@ namespace TPMImport
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: TPMImport [-user] [-v] PFXPath [PFXPassword]");
+                Console.WriteLine("Usage: TPMImport [-user] [-delete] [-v] PFXPath [PFXPassword]");
                 return;
             }
 
@@ -28,6 +62,8 @@ namespace TPMImport
 
             bool fUser = args[iArgPos].Equals("-user", StringComparison.InvariantCultureIgnoreCase);
             if (fUser) ++iArgPos;
+            bool fDelete = args[iArgPos].Equals("-delete", StringComparison.InvariantCultureIgnoreCase);
+            if (fDelete) ++iArgPos;
             bool fVerbose = args[iArgPos].Equals("-v", StringComparison.InvariantCultureIgnoreCase);
             if (fVerbose) ++iArgPos;
 
@@ -61,6 +97,13 @@ namespace TPMImport
             //}
 
             using X509Certificate2 cert = new(sPFXPath, sPassword, X509KeyStorageFlags.Exportable);
+
+            if (fDelete)
+            {
+                DeleteCngCertificate(fUser, cert.Thumbprint);
+                return;
+            }
+
             using RSACng keyFromPFx = new();
             keyFromPFx.FromXmlString(cert.GetRSAPrivateKey().ToXmlString(true));
             byte[] keyData = keyFromPFx.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
