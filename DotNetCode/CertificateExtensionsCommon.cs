@@ -35,7 +35,7 @@ namespace DotNetCode
 			crypt_KEY_PROV_INFO.dwFlags = (int)(isMachineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None);
 			crypt_KEY_PROV_INFO.cProvParam = 0;
 			crypt_KEY_PROV_INFO.rgProvParam = System.IntPtr.Zero;
-            crypt_KEY_PROV_INFO.dwKeySpec = dwKeySpec;
+			crypt_KEY_PROV_INFO.dwKeySpec = dwKeySpec;
 			using (SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate))
 			{
 				if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
