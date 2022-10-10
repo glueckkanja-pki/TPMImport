@@ -19,7 +19,7 @@ namespace TPMImport
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: TPMImport [-user] [-v] PFXPath PFXPassword");
+                Console.WriteLine("Usage: TPMImport [-user] [-v] PFXPath [PFXPassword]");
                 return;
             }
 
