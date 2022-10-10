@@ -1,6 +1,7 @@
 ﻿using DotNetCode;
 using Microsoft.Win32.SafeHandles;
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security;
@@ -98,6 +99,17 @@ namespace TPMImport
 
             using X509Certificate2 certOnly = new(cert.Export(X509ContentType.Cert));
             using X509Certificate2 copiedCertificate = CertificateExtensionsCommon.CopyWithPersistedCngKeyFixed(certOnly, key);
+
+            if (fVerbose)
+                using (RSACng keyOfCopiedCertificate = copiedCertificate.GetRSAPrivateKey() as RSACng)
+                {
+                    CngProperty NewExportPolicy = keyOfCopiedCertificate.Key.GetProperty("Export Policy", CngPropertyOptions.None);
+                    string exportPolicyValue = string.Join('-',
+                        NewExportPolicy.GetValue()
+                            .Select(valueByte => valueByte.ToString()));
+                    Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
+
+                }
 
             using X509Store store = new(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite);
