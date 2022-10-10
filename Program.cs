@@ -19,7 +19,7 @@ namespace TPMImport
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: TPMImport [-user] [-v] PFXPath PFXPassword");
+                Console.WriteLine("Usage: TPMImport [-user] [-v] PFXPath [PFXPassword]");
                 return;
             }
 
@@ -31,7 +31,10 @@ namespace TPMImport
             if (fVerbose) ++iArgPos;
 
             string sPFXPath = args[iArgPos++];
-            string sPassword = args[iArgPos++];
+
+            string sPassword = "";
+            if (args.Length > iArgPos)
+                sPassword = args[iArgPos++];
 
             //var parameters = new CngKeyCreationParameters()
             //{
