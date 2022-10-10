@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace DotNetCode
 {
+    [SupportedOSPlatform("windows")]
     internal static class CertificateExtensionsCommon
 	{
 		public static bool IsMachineKey(CngKey cngKey)
@@ -15,7 +16,6 @@ namespace DotNetCode
 			return (baMT[0] & 1) == 1; // according to https://docs.microsoft.com/en-us/windows/win32/seccng/key-storage-property-identifiers, which defines NCRYPT_MACHINE_KEY_FLAG differently than ncrypt.h
 		}
 
-		[SupportedOSPlatform("windows")]
 		[SecurityCritical]
 		internal static X509Certificate2 CopyWithPersistedCngKeyFixed(X509Certificate2 publicCert, CngKey cngKey)
 		{
