@@ -19,6 +19,10 @@ CertUtil: -importPFX command FAILED: 0x80090029 (-2146893783 NTE_NOT_SUPPORTED)
 CertUtil: The requested operation is not supported.
 ```
 
+## Known Issues
+
+When deleting the certificate via the Windows UI or similar means, the TPM still keeps the private key. This is different than other KSPs and CSPs and likely depends only on the KSP and not the way TPMImport imports the key. Read [Issue #4](https://github.com/glueckkanja-pki/TPMImport/issues/4) for more details.
+
 ## License
 
 TPMImport is available under the [GPL](LICENSE).
