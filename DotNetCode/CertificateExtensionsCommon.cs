@@ -33,14 +33,12 @@ namespace DotNetCode
             crypt_KEY_PROV_INFO.cProvParam = 0;
             crypt_KEY_PROV_INFO.rgProvParam = System.IntPtr.Zero;
             crypt_KEY_PROV_INFO.dwKeySpec = GuessKeySpec(cngKey.Provider, cngKey.KeyName, isMachineKey, cngKey.AlgorithmGroup);
-            using (SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate))
+            using SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate);
+            if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
             {
-                if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
-                {
-                    int lastWin32Error = Marshal.GetLastWin32Error();
-                    x509Certificate.Dispose();
-                    throw new CryptographicException(lastWin32Error);
-                }
+                int lastWin32Error = Marshal.GetLastWin32Error();
+                x509Certificate.Dispose();
+                throw new CryptographicException(lastWin32Error);
             }
             return x509Certificate;
         }
