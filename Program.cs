@@ -1,19 +1,19 @@
-﻿using System;
+﻿using DotNetCode;
+using Microsoft.Win32.SafeHandles;
+using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using DotNetCode;
-using Microsoft.Win32.SafeHandles;
 
 namespace TPMImport
 {
-    class Program
+    internal class Program
     {
         [SupportedOSPlatform("windows")]
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Console.WriteLine("PFX to TPM Importer");
 
@@ -32,7 +32,7 @@ namespace TPMImport
 
             string sPFXPath = args[iArgPos++];
             string sPassword = args[iArgPos++];
-                
+
             //var parameters = new CngKeyCreationParameters()
             //{
             //    Provider = 
@@ -97,5 +97,5 @@ namespace TPMImport
             store.Close();
 
         }
-     }
+    }
 }
