@@ -23,6 +23,8 @@ CertUtil: The requested operation is not supported.
 
 When deleting the certificate via the Windows UI or similar means, the TPM still keeps the private key. This is different than other KSPs and CSPs and likely depends only on the KSP and not the way TPMImport imports the key. Read [Issue #4](https://github.com/glueckkanja-pki/TPMImport/issues/4) for more details.
 
+Keys stored in the TPM can be listed through the `certutil [-user] -csp TPM -key` command and leaked keys can be deleted with `certutil [-user] -csp TPM -delkey TPM-Import-Key-<thumbprint> `.
+
 ## License
 
 TPMImport is available under the [GPL](LICENSE).
