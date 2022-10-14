@@ -108,6 +108,15 @@ namespace TPMImport
             }
 
             using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
+            if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+            {
+                // workaround for missing AllowPlaintextExport
+                var password = "dummyPassword";
+                PbeParameters encParams = new PbeParameters(PbeEncryptionAlgorithm.Aes128Cbc, HashAlgorithmName.SHA256, 1);
+                var exportedKey = rsaPrivKey.ExportEncryptedPkcs8PrivateKey(password, encParams);
+                rsaPrivKey.ImportEncryptedPkcs8PrivateKey(password, exportedKey, out _);
+            }
+
             byte[] keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
             CngKeyCreationParameters keyParams = new()
             {
