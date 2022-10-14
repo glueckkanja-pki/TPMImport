@@ -142,11 +142,11 @@ namespace TPMImport
                 Console.WriteLine($"Key is reported as Machine Key (always false): {key.IsMachineKey}; Key Is Closed: {key.Handle.IsClosed}; Is Invalid: {key.Handle.IsInvalid}; Export Policy: {key.ExportPolicy}; Is Ephemeral: {key.IsEphemeral}");
             }
 
-            using X509Certificate2 certOnly = new(cert.Export(X509ContentType.Cert));
-            using X509Certificate2 copiedCertificate = CertificateExtensionsCommon.CopyWithPersistedCngKeyFixed(certOnly, key);
+            using X509Certificate2 cngCert = new(cert.Export(X509ContentType.Cert));
+            CertificateExtensionsCommon.AddCngKey(cngCert, key);
 
             if (fVerbose)
-                using (RSACng keyOfCopiedCertificate = copiedCertificate.GetRSAPrivateKey() as RSACng)
+                using (RSACng keyOfCopiedCertificate = cngCert.GetRSAPrivateKey() as RSACng)
                 {
                     CngProperty NewExportPolicy = keyOfCopiedCertificate.Key.GetProperty("Export Policy", CngPropertyOptions.None);
                     string exportPolicyValue = string.Join('-',
@@ -158,9 +158,8 @@ namespace TPMImport
 
             using X509Store store = new(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite);
-            store.Add(copiedCertificate);
+            store.Add(cngCert);
             store.Close();
-
         }
     }
 }
