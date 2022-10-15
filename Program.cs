@@ -29,7 +29,7 @@ namespace TPMImport
                 if (!cert.HasPrivateKey)
                     continue; // private key missing
 
-                RSACng priv_key = (RSACng)cert.PrivateKey;
+                var priv_key = (RSACng)cert.GetRSAPrivateKey();
                 if (priv_key == null)
                     continue; // unsupported key type
 
