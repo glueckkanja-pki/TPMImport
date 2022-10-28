@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security;
 using System.Security.Cryptography;
@@ -11,6 +12,11 @@ namespace DotNetCode
     {
         public static bool IsMachineKey(CngKey cngKey)
         {
+            // the IsMachineKey property seem to be fixed on Win11
+            if (Environment.OSVersion.Version.Build >= 22000)
+                return cngKey.IsMachineKey;
+
+            // the following logic don't work on Win11 where GetProperty("Key Type"..) returns [32, 0, 0, 0] for LocalMachine keys
             CngProperty propMT = cngKey.GetProperty("Key Type", CngPropertyOptions.None);
             byte[] baMT = propMT.GetValue();
             return (baMT[0] & 1) == 1; // according to https://docs.microsoft.com/en-us/windows/win32/seccng/key-storage-property-identifiers, which defines NCRYPT_MACHINE_KEY_FLAG differently than ncrypt.h
