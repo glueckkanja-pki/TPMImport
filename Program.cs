@@ -15,36 +15,35 @@ namespace TPMImport
     internal class Program
     {
         /** Delete both the certificate & private key in TPM */
+        [SupportedOSPlatform("windows")]
         private static void DeleteCngCertificate(bool fUser, string Thumbprint)
         {
-            using (X509Store store = new X509Store(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine))
+            using X509Store store = new X509Store(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
+            store.Open(OpenFlags.ReadWrite);
+
+            // search for a matching CNG certificate stored in TPM
+            foreach (X509Certificate2 cert in store.Certificates)
             {
-                store.Open(OpenFlags.ReadWrite);
+                if (cert.Thumbprint != Thumbprint)
+                    continue; // thumbprint mismatch
 
-                // search for a matching CNG certificate stored in TPM
-                foreach (X509Certificate2 cert in store.Certificates)
-                {
-                    if (cert.Thumbprint != Thumbprint)
-                        continue; // thumbprint mismatch
+                if (!cert.HasPrivateKey)
+                    continue; // private key missing
 
-                    if (!cert.HasPrivateKey)
-                        continue; // private key missing
+                var priv_key = (RSACng)cert.GetRSAPrivateKey();
+                if (priv_key == null)
+                    continue; // unsupported key type
 
-                    RSACng priv_key = (RSACng)cert.PrivateKey;
-                    if (priv_key == null)
-                        continue; // unsupported key type
+                if (priv_key.Key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
+                    continue; // key not stored in TPM
 
-                    if (priv_key.Key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
-                        continue; // key not stored in TPM
+                Console.WriteLine("Deleting " + cert.Subject + " with name " + priv_key.Key.KeyName + "\n");
+                // delete certificate
+                store.Remove(cert);
+                // delete associated CNG key
+                priv_key.Key.Delete();
 
-                    Console.WriteLine("Deleting " + cert.Subject + " with name " + priv_key.Key.KeyName + "\n");
-                    // delete certificate
-                    store.Remove(cert);
-                    // delete associated CNG key
-                    priv_key.Key.Delete();
-
-                    return;
-                }
+                return;
             }
         }
 
