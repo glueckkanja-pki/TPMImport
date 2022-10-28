@@ -17,13 +17,12 @@ namespace DotNetCode
         }
 
         [SecurityCritical]
-        internal static X509Certificate2 CopyWithPersistedCngKeyFixed(X509Certificate2 publicCert, CngKey cngKey)
+        internal static void AddCngKey(X509Certificate2 x509Certificate, CngKey cngKey)
         {
             if (string.IsNullOrEmpty(cngKey.KeyName))
-            {
-                return null;
-            }
-            X509Certificate2 x509Certificate = new(publicCert.RawData);
+
+                return;
+
             bool isMachineKey = IsMachineKey(cngKey);
             X509Native.CRYPT_KEY_PROV_INFO crypt_KEY_PROV_INFO = default;
             crypt_KEY_PROV_INFO.pwszContainerName = cngKey.KeyName;
@@ -37,10 +36,8 @@ namespace DotNetCode
             if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
             {
                 int lastWin32Error = Marshal.GetLastWin32Error();
-                x509Certificate.Dispose();
                 throw new CryptographicException(lastWin32Error);
             }
-            return x509Certificate;
         }
 
         private static int GuessKeySpec(CngProvider provider, string keyName, bool machineKey, CngAlgorithmGroup algorithmGroup)
