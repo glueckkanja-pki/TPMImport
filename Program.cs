@@ -104,9 +104,8 @@ namespace TPMImport
                 return;
             }
 
-            using RSACng keyFromPFx = new();
-            keyFromPFx.FromXmlString(cert.GetRSAPrivateKey().ToXmlString(true));
-            byte[] keyData = keyFromPFx.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
+            using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
+            byte[] keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
             CngKeyCreationParameters keyParams = new()
             {
                 ExportPolicy = CngExportPolicies.None,
