@@ -14,6 +14,23 @@ namespace TPMImport
 {
     internal class Program
     {
+        private static string _passwordForTemporaryKeys;
+        private static string PasswordForTemporaryKeys
+        {
+            get
+            {
+                if (null == _passwordForTemporaryKeys)
+                {
+                    byte[] binPw = new byte[40];
+                    using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+                        rng.GetBytes(binPw);
+                    _passwordForTemporaryKeys = Convert.ToBase64String(binPw);
+                }
+
+                return _passwordForTemporaryKeys;
+            }
+        }
+
         /** Delete both the certificate & private key in TPM */
         [SupportedOSPlatform("windows")]
         private static void DeleteCngCertificate(bool fUser, string Thumbprint)
@@ -108,6 +125,14 @@ namespace TPMImport
             }
 
             using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
+            if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+            {
+                // workaround for missing AllowPlaintextExport
+                PbeParameters encParams = new(PbeEncryptionAlgorithm.Aes128Cbc, HashAlgorithmName.SHA256, 1);
+                byte[] exportedKey = rsaPrivKey.ExportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, encParams);
+                rsaPrivKey.ImportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, exportedKey, out _);
+            }
+
             byte[] keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
             CngKeyCreationParameters keyParams = new()
             {
