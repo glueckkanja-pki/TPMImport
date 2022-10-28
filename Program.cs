@@ -1,6 +1,7 @@
 ﻿using DotNetCode;
 using Microsoft.Win32.SafeHandles;
 using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -14,7 +15,7 @@ namespace TPMImport
     internal class Program
     {
         /** Delete both the certificate & private key in TPM */
-        static void DeleteCngCertificate(bool fUser, string Thumbprint)
+        private static void DeleteCngCertificate(bool fUser, string Thumbprint)
         {
             using (X509Store store = new X509Store(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine))
             {
@@ -96,7 +97,10 @@ namespace TPMImport
             //    key.Delete();
             //}
 
-            using X509Certificate2 cert = new(sPFXPath, sPassword, X509KeyStorageFlags.Exportable);
+            X509KeyStorageFlags pfxImportFlags = X509KeyStorageFlags.Exportable;
+            if (fUser)
+                pfxImportFlags |= X509KeyStorageFlags.UserKeySet;
+            using X509Certificate2 cert = new(sPFXPath, sPassword, pfxImportFlags);
 
             if (fDelete)
             {
