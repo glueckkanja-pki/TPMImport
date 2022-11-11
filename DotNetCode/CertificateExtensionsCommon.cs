@@ -7,7 +7,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace DotNetCode
 {
-    [SupportedOSPlatform("windows")]
     internal static class CertificateExtensionsCommon
     {
         public static bool IsMachineKey(CngKey cngKey)

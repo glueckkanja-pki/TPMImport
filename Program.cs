@@ -32,7 +32,6 @@ namespace TPMImport
         }
 
         /** Delete both the certificate & private key in TPM */
-        [SupportedOSPlatform("windows")]
         private static void DeleteCngCertificate(bool fUser, string Thumbprint)
         {
             using X509Store store = new X509Store(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
@@ -64,7 +63,6 @@ namespace TPMImport
             }
         }
 
-        [SupportedOSPlatform("windows")]
         private static void Main(string[] args)
         {
             Console.WriteLine("PFX to TPM Importer");
