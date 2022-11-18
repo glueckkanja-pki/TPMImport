@@ -25,18 +25,17 @@ namespace DotNetCode
         internal static void AddCngKey(X509Certificate2 x509Certificate, CngKey cngKey)
         {
             if (string.IsNullOrEmpty(cngKey.KeyName))
-
                 return;
 
-            bool isMachineKey = IsMachineKey(cngKey);
+            CngKeyOpenOptions keyOptions = IsMachineKey(cngKey) ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None;
             X509Native.CRYPT_KEY_PROV_INFO crypt_KEY_PROV_INFO = default;
             crypt_KEY_PROV_INFO.pwszContainerName = cngKey.KeyName;
             crypt_KEY_PROV_INFO.pwszProvName = cngKey.Provider.Provider;
             crypt_KEY_PROV_INFO.dwProvType = 0;
-            crypt_KEY_PROV_INFO.dwFlags = (int)(isMachineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None);
+            crypt_KEY_PROV_INFO.dwFlags = (int)keyOptions;
             crypt_KEY_PROV_INFO.cProvParam = 0;
             crypt_KEY_PROV_INFO.rgProvParam = System.IntPtr.Zero;
-            crypt_KEY_PROV_INFO.dwKeySpec = GuessKeySpec(cngKey.Provider, cngKey.KeyName, isMachineKey, cngKey.AlgorithmGroup);
+            crypt_KEY_PROV_INFO.dwKeySpec = GuessKeySpec(cngKey.Provider, cngKey.KeyName, keyOptions, cngKey.AlgorithmGroup);
             using SafeCertContextHandle certificateContext = X509Native.GetCertificateContext(x509Certificate);
             if (!X509Native.SetCertificateKeyProvInfo(certificateContext, ref crypt_KEY_PROV_INFO))
             {
@@ -45,14 +44,13 @@ namespace DotNetCode
             }
         }
 
-        private static int GuessKeySpec(CngProvider provider, string keyName, bool machineKey, CngAlgorithmGroup algorithmGroup)
+        private static int GuessKeySpec(CngProvider provider, string keyName, CngKeyOpenOptions keyOptions, CngAlgorithmGroup algorithmGroup)
         {
             if (provider == CngProvider.MicrosoftSoftwareKeyStorageProvider || provider == CngProvider.MicrosoftSmartCardKeyStorageProvider)
             {
                 return 0;
             }
-            CngKeyOpenOptions openOptions = machineKey ? CngKeyOpenOptions.MachineKey : CngKeyOpenOptions.None;
-            using (CngKey.Open(keyName, provider, openOptions))
+            using (CngKey.Open(keyName, provider, keyOptions))
             {
                 return 0;
             }
