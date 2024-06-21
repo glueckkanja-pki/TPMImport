@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v3
         with:
           # Optional, GitHub token
           github_token: ${{secrets.GITHUB_TOKEN}}
@@ -52,7 +52,7 @@ jobs:
         run: ls -Rs
           
       - name: Upload Artifacts to Release
-        uses: actions/upload-release-asset@v1.0.1
+        uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
