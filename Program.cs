@@ -69,7 +69,7 @@ namespace TPMImport
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: TPMImport [-user] [-delete] [-v] PFXPath [PFXPassword]");
+                Console.WriteLine("Usage: TPMImport [-user] [-delete] [-v] [PFXPath|-b EncodedPfx] [PFXPassword]");
                 return;
             }
 
@@ -82,7 +82,18 @@ namespace TPMImport
             bool fVerbose = args[iArgPos].Equals("-v", StringComparison.InvariantCultureIgnoreCase);
             if (fVerbose) ++iArgPos;
 
-            string sPFXPath = args[iArgPos++];
+            byte[] binPfx;
+            bool fBase64 = args[iArgPos].Equals("-b", StringComparison.InvariantCultureIgnoreCase);
+            if (fBase64)
+            {
+                ++iArgPos;
+                binPfx = Convert.FromBase64String(args[iArgPos++]);
+            }
+            else
+            {
+                string sPFXPath = args[iArgPos++];
+                binPfx = File.ReadAllBytes(sPFXPath);
+            }
 
             string sPassword = "";
             if (args.Length > iArgPos)
@@ -114,7 +125,7 @@ namespace TPMImport
             X509KeyStorageFlags pfxImportFlags = X509KeyStorageFlags.Exportable;
             if (fUser)
                 pfxImportFlags |= X509KeyStorageFlags.UserKeySet;
-            using X509Certificate2 cert = new(sPFXPath, sPassword, pfxImportFlags);
+            using X509Certificate2 cert = new(binPfx, sPassword, pfxImportFlags);
 
             if (fDelete)
             {
