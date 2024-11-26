@@ -47,6 +47,14 @@ namespace TPMImport
             key.Delete();
         }
 
+        private static void AllowPlaintextExportWorkaround(AsymmetricAlgorithm key)
+        {
+            // workaround for missing AllowPlaintextExport
+            PbeParameters encParams = new(PbeEncryptionAlgorithm.Aes128Cbc, HashAlgorithmName.SHA256, 1);
+            byte[] exportedKey = key.ExportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, encParams);
+            key.ImportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, exportedKey, out _);
+        }
+
         /** Delete both the certificate & private key in TPM */
         private static void DeleteCngCertificate(bool fUser, string Thumbprint)
         {
@@ -144,17 +152,30 @@ namespace TPMImport
                 return;
             }
 
-            CngAlgorithm algorithm = CngAlgorithm.Rsa;
-            using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
-            if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+            CngAlgorithm algorithm = default(CngAlgorithm);
+            byte[] keyData = null;
             {
-                // workaround for missing AllowPlaintextExport
-                PbeParameters encParams = new(PbeEncryptionAlgorithm.Aes128Cbc, HashAlgorithmName.SHA256, 1);
-                byte[] exportedKey = rsaPrivKey.ExportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, encParams);
-                rsaPrivKey.ImportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, exportedKey, out _);
+                using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
+                if (rsaPrivKey != null)
+                {
+                    if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+                        AllowPlaintextExportWorkaround(rsaPrivKey);
+
+                    algorithm = CngAlgorithm.Rsa;
+                    keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
+                }
+
+                using var ecdsaPrivKey = (ECDsaCng)cert.GetECDsaPrivateKey();
+                if (ecdsaPrivKey != null)
+                {
+                    if (!ecdsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+                        AllowPlaintextExportWorkaround(ecdsaPrivKey);
+
+                    algorithm = CngAlgorithm.ECDsa;
+                    keyData = ecdsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
+                }
             }
 
-            byte[] keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
             CngKeyCreationParameters keyParams = new()
             {
                 ExportPolicy = CngExportPolicies.None,
