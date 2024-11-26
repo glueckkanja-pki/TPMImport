@@ -26,6 +26,18 @@ namespace TPMImport
             }
         }
 
+        private static void DeleteIfOnTPM(X509Store store, X509Certificate2 cert, CngKey key)
+        {
+            if (key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
+                return; // key not stored in TPM
+
+            Console.WriteLine("Deleting " + cert.Subject + " with name " + key.KeyName + "\n");
+            // delete certificate
+            store.Remove(cert);
+            // delete associated CNG key
+            key.Delete();
+        }
+
         /** Delete both the certificate & private key in TPM */
         private static void DeleteCngCertificate(bool fUser, string Thumbprint)
         {
@@ -41,18 +53,13 @@ namespace TPMImport
                 if (!cert.HasPrivateKey)
                     continue; // private key missing
 
-                var priv_key = (RSACng)cert.GetRSAPrivateKey();
-                if (priv_key == null)
-                    continue; // unsupported key type
+                var priv_key_rsa = (RSACng)cert.GetRSAPrivateKey();
+                if (priv_key_rsa != null)
+                    DeleteIfOnTPM(store, cert, priv_key_rsa.Key);
 
-                if (priv_key.Key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
-                    continue; // key not stored in TPM
-
-                Console.WriteLine("Deleting " + cert.Subject + " with name " + priv_key.Key.KeyName + "\n");
-                // delete certificate
-                store.Remove(cert);
-                // delete associated CNG key
-                priv_key.Key.Delete();
+                var priv_key_ecdsa = (ECDsaCng)cert.GetECDsaPrivateKey();
+                if (priv_key_ecdsa != null)
+                    DeleteIfOnTPM(store, cert, priv_key_ecdsa.Key);
 
                 return;
             }
