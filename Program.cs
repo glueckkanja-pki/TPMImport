@@ -26,6 +26,15 @@ namespace TPMImport
             }
         }
 
+        private static void PrintExportPolicy(CngKey key)
+        {
+            CngProperty NewExportPolicy = key.GetProperty("Export Policy", CngPropertyOptions.None);
+            string exportPolicyValue = string.Join('-',
+                NewExportPolicy.GetValue()
+                    .Select(valueByte => valueByte.ToString()));
+            Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
+        }
+
         private static void DeleteIfOnTPM(X509Store store, X509Certificate2 cert, CngKey key)
         {
             if (key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
@@ -188,15 +197,18 @@ namespace TPMImport
                 CertificateExtensionsCommon.AddCngKey(cngCert, key);
 
                 if (fVerbose)
-                    using (RSACng keyOfCopiedCertificate = cngCert.GetRSAPrivateKey() as RSACng)
+                {
                     {
-                        CngProperty NewExportPolicy = keyOfCopiedCertificate.Key.GetProperty("Export Policy", CngPropertyOptions.None);
-                        string exportPolicyValue = string.Join('-',
-                            NewExportPolicy.GetValue()
-                                .Select(valueByte => valueByte.ToString()));
-                        Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
-
+                        using var keyOfCopiedCertificate = (RSACng)cngCert.GetRSAPrivateKey();
+                        if (keyOfCopiedCertificate != null)
+                            PrintExportPolicy(keyOfCopiedCertificate.Key);
                     }
+                    {
+                        using var keyOfCopiedCertificate = (ECDsaCng)cngCert.GetECDsaPrivateKey();
+                        if (keyOfCopiedCertificate != null)
+                            PrintExportPolicy(keyOfCopiedCertificate.Key);
+                    }
+                }
 
                 using X509Store store = new(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
