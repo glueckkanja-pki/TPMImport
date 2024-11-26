@@ -144,6 +144,7 @@ namespace TPMImport
                 return;
             }
 
+            CngAlgorithm algorithm = CngAlgorithm.Rsa;
             using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
             if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
             {
@@ -173,14 +174,14 @@ namespace TPMImport
             //keyParams.Parameters.Add(new CngProperty("Security Descr", binSDL, (CngPropertyOptions) 0x44)); // 0x44 = DACL_SECURITY_INFORMATION | NCRYPT_SILENT_FLAG
 
             if (fVerbose)
-                Console.WriteLine($"Creating RSA CngKeyObject with TPM-Import-Key-{cert.Thumbprint}");
+                Console.WriteLine($"Creating CngKeyObject with TPM-Import-Key-{cert.Thumbprint}");
 
             CngKey key = null;
             string keyName = $"TPM-Import-Key-{cert.Thumbprint}";
 
             try
             {
-                key = CngKey.Create(CngAlgorithm.Rsa, keyName, keyParams);
+                key = CngKey.Create(algorithm, keyName, keyParams);
 
 
                 //            key = CngKey.Open($"TPM-Import-Key-{cert.Thumbprint}", new CngProvider("Microsoft Platform Crypto Provider"), CngKeyOpenOptions.MachineKey);
