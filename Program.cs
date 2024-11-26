@@ -7,7 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace TPMImport
 {
-    internal class Program
+    internal static class Program
     {
         private static string _passwordForTemporaryKeys;
         private static string PasswordForTemporaryKeys
@@ -169,7 +169,7 @@ namespace TPMImport
 
                 //            key = CngKey.Open($"TPM-Import-Key-{cert.Thumbprint}", new CngProvider("Microsoft Platform Crypto Provider"), CngKeyOpenOptions.MachineKey);
 
-                CngProperty propMT = key.GetProperty("Key Type", CngPropertyOptions.None);
+                //CngProperty propMT = key.GetProperty("Key Type", CngPropertyOptions.None);
                 //byte[] baMT = propMT.GetValue();
 
                 if (fVerbose)
