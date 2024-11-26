@@ -164,36 +164,51 @@ namespace TPMImport
             if (fVerbose)
                 Console.WriteLine($"Creating RSA CngKeyObject with TPM-Import-Key-{cert.Thumbprint}");
 
-            using CngKey key = CngKey.Create(CngAlgorithm.Rsa, $"TPM-Import-Key-{cert.Thumbprint}", keyParams);
+            CngKey key = null;
+            string keyName = $"TPM-Import-Key-{cert.Thumbprint}";
 
-            //            key = CngKey.Open($"TPM-Import-Key-{cert.Thumbprint}", new CngProvider("Microsoft Platform Crypto Provider"), CngKeyOpenOptions.MachineKey);
-
-            CngProperty propMT = key.GetProperty("Key Type", CngPropertyOptions.None);
-            //byte[] baMT = propMT.GetValue();
-
-            if (fVerbose)
+            try
             {
-                Console.WriteLine($"Key is reported as Machine Key (always false): {key.IsMachineKey}; Key Is Closed: {key.Handle.IsClosed}; Is Invalid: {key.Handle.IsInvalid}; Export Policy: {key.ExportPolicy}; Is Ephemeral: {key.IsEphemeral}");
-            }
+                key = CngKey.Create(CngAlgorithm.Rsa, keyName, keyParams);
 
-            using X509Certificate2 cngCert = new(cert.Export(X509ContentType.Cert));
-            CertificateExtensionsCommon.AddCngKey(cngCert, key);
 
-            if (fVerbose)
-                using (RSACng keyOfCopiedCertificate = cngCert.GetRSAPrivateKey() as RSACng)
+                //            key = CngKey.Open($"TPM-Import-Key-{cert.Thumbprint}", new CngProvider("Microsoft Platform Crypto Provider"), CngKeyOpenOptions.MachineKey);
+
+                CngProperty propMT = key.GetProperty("Key Type", CngPropertyOptions.None);
+                //byte[] baMT = propMT.GetValue();
+
+                if (fVerbose)
                 {
-                    CngProperty NewExportPolicy = keyOfCopiedCertificate.Key.GetProperty("Export Policy", CngPropertyOptions.None);
-                    string exportPolicyValue = string.Join('-',
-                        NewExportPolicy.GetValue()
-                            .Select(valueByte => valueByte.ToString()));
-                    Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
-
+                    Console.WriteLine($"Key is reported as Machine Key (always false): {key.IsMachineKey}; Key Is Closed: {key.Handle.IsClosed}; Is Invalid: {key.Handle.IsInvalid}; Export Policy: {key.ExportPolicy}; Is Ephemeral: {key.IsEphemeral}");
                 }
 
-            using X509Store store = new(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
-            store.Open(OpenFlags.ReadWrite);
-            store.Add(cngCert);
-            store.Close();
+                using X509Certificate2 cngCert = new(cert.Export(X509ContentType.Cert));
+                CertificateExtensionsCommon.AddCngKey(cngCert, key);
+
+                if (fVerbose)
+                    using (RSACng keyOfCopiedCertificate = cngCert.GetRSAPrivateKey() as RSACng)
+                    {
+                        CngProperty NewExportPolicy = keyOfCopiedCertificate.Key.GetProperty("Export Policy", CngPropertyOptions.None);
+                        string exportPolicyValue = string.Join('-',
+                            NewExportPolicy.GetValue()
+                                .Select(valueByte => valueByte.ToString()));
+                        Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
+
+                    }
+
+                using X509Store store = new(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
+                store.Open(OpenFlags.ReadWrite);
+                store.Add(cngCert);
+                store.Close();
+            }
+            catch (CryptographicException cex) when ((uint)cex.HResult == 0x8009000F)
+            {
+                throw new InvalidOperationException($"Private key with name '{keyName}' already exists.", cex);
+            }
+            finally
+            {
+                key?.Dispose();
+            }
         }
     }
 }
