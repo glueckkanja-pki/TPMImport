@@ -33,11 +33,11 @@ namespace DotNetCode
         // Token: 0x0200035F RID: 863
         internal enum CertificateProperty
         {
-            // Token: 0x04000F6D RID: 3949
+            // Token: 0x04000F6D RID: 3949 (CERT_KEY_PROV_INFO_PROP_ID)
             KeyProviderInfo = 2,
-            // Token: 0x04000F6E RID: 3950
+            // Token: 0x04000F6E RID: 3950 (CERT_KEY_CONTEXT_PROP_ID)
             KeyContext = 5,
-            // Token: 0x04000F6F RID: 3951
+            // Token: 0x04000F6F RID: 3951 (CERT_NCRYPT_KEY_HANDLE_PROP_ID)
             NCryptKeyHandle = 78
         }
 
