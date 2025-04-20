@@ -74,7 +74,7 @@ namespace DotNetCode
             // Token: 0x04000F7B RID: 3963
             internal IntPtr rgProvParam;
 
-            // Token: 0x04000F7C RID: 3964
+            // Token: 0x04000F7C RID: 3964 (AT_KEYEXCHANGE=1, AT_SIGNATURE=2)
             internal int dwKeySpec;
         }
 
