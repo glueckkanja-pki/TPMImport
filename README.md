@@ -1,12 +1,14 @@
 # TPMImport
-Imports certificates from PFX files into the Microsoft Platform Crypto Provider.
+Imports certificates from PFX files into the Microsoft Platform Crypto Provider, so that the private key is stored in TPM.
 
-This is the same as
+## TPMImport Usage
 
-certutil -user -csp TPM -p password -importPFX PFXFile NoExport
+`TPMImport [-user] [-delete] [-v] [PFXPath|-b EncodedPfx] [PFXPassword]`
 
-But certutil has a bug and at least on some systems produces the error 
 
+## Relation to certutil
+
+TPMImport conceptually does the same as `certutil [-user] -csp TPM -p password -importPFX PFXFile NoExport`. However, [certutil](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil) has a bug and at least on some systems produces the error
 ```
 CertUtil: -importPFX command FAILED: 0x80090027 (-2146893785 NTE_INVALID_PARAMETER)
 CertUtil: The parameter is incorrect.
