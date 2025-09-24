@@ -143,7 +143,8 @@ namespace TPMImport
                 ExportPolicy = CngExportPolicies.None,
                 KeyCreationOptions = fUser ? CngKeyCreationOptions.None : CngKeyCreationOptions.MachineKey,
                 Provider =
-                new CngProvider("Microsoft Platform Crypto Provider"),
+                //new CngProvider("Microsoft Platform Crypto Provider"),
+                new CngProvider("Microsoft Smart Card Key Storage Provider"),
                 //CngProvider.MicrosoftSoftwareKeyStorageProvider
             };
             keyParams.Parameters.Add(new CngProperty(CngKeyBlobFormat.GenericPrivateBlob.Format, keyData, CngPropertyOptions.None));
