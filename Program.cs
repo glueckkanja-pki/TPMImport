@@ -174,6 +174,9 @@ namespace TPMImport
                     algorithm = CngAlgorithm.ECDsa;
                     keyData = ecdsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
                 }
+
+                if (algorithm == default(CngAlgorithm))
+                    throw new ArgumentException("Unsuported certificate type");
             }
 
             CngKeyCreationParameters keyParams = new()
