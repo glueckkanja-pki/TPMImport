@@ -11,7 +11,7 @@ TPMImport support keys in the following formats:
 
 ## Relation to certutil
 
-TPMImport conceptually does the same as `certutil [-user] -csp TPM -p password -importPFX PFXFile NoExport`. However, [certutil](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil) has a bug on Windows 10 and possibly some older versions of Windows 11 where it produces the following error when importing an RSA key:
+TPMImport conceptually does the same as `certutil [-user] -csp TPM -p password -importPFX PFXFile NoExport`. However, [certutil](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil) has a bug on Windows 10 where it produces the following error when importing an RSA key:
 
 ```
 CertUtil: -importPFX command FAILED: 0x80090027 (-2146893785 NTE_INVALID_PARAMETER)
@@ -25,7 +25,7 @@ CertUtil: -importPFX command FAILED: 0x80090029 (-2146893783 NTE_NOT_SUPPORTED)
 CertUtil: The requested operation is not supported.
 ```
 
-If you have a recent version of Windows 11 and want to import an RSA key into the TPM, it is likely better to use certutil instead of TPMImport, as it comes pre-installed with Windows.
+If you have Windows 11 and want to import an RSA key into the TPM, it is likely better to use certutil instead of TPMImport, as it comes pre-installed with Windows.
 
 Certutil also doesn't seem to support TPM import of EC-DSA keys, since it fails with `NTE_BAD_TYPE` in some cases. In other cases, it works initally, but `certutil -store MY` shows `ERROR: Could not verify certificate public key against private key`. Others have seen a `NTE_BAD_TYPE` error during import already. TPMImport correctly imports these keys.
 
