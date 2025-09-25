@@ -27,7 +27,7 @@ CertUtil: The requested operation is not supported.
 
 If you have a recent version of Windows 11 and want to import an RSA key into the TPM, it is likely better to use certutil instead of TPMImport, as it comes pre-installed with Windows.
 
-Certutil also doesn't seem to support TPM import of EC-DSA keys, since it fails with `NTE_BAD_TYPE`.
+Certutil also doesn't seem to support TPM import of EC-DSA keys, since it fails with `NTE_BAD_TYPE` in some cases. In other cases, it works initally, but `certutil -store MY` shows `ERROR: Could not verify certificate public key against private key`. Others have seen a `NTE_BAD_TYPE` error during import already. TPMImport correctly imports these keys.
 
 ## Known Issues
 
