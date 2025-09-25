@@ -1,10 +1,13 @@
 # TPMImport
-Imports certificates from PFX files into the Microsoft Platform Crypto Provider, so that the private key is stored in TPM.
+Imports certificates from PFX files into the _Microsoft Platform Crypto Provider_, so that the private key is stored in TPM.
 
 ## TPMImport Usage
 
 `TPMImport [-user] [-delete] [-v] [PFXPath|-b EncodedPfx] [PFXPassword]`
 
+TPMImport support keys in the following formats:
+* Rivest–Shamir–Adleman (RSA)
+* Elliptic Curve Digital Signature Algorithm (EC-DSA)
 
 ## Relation to certutil
 
@@ -24,7 +27,7 @@ CertUtil: The requested operation is not supported.
 
 If you have a recent version of Windows 11 and want to import an RSA key into the TPM, it is likely better to use certutil instead of TPMImport, as it comes pre-installed with Windows.
 
-Using certutil to import certificates with ECDSA key might also fail on Windows. It might initially work, but `certutil -store MY` would show `ERROR: Could not verify certificate public key against private key`. Others have seen a `NTE_BAD_TYPE` error during import already. TPMImport correctly imports these keys.
+Certutil also doesn't seem to support TPM import of EC-DSA keys, since it fails with `NTE_BAD_TYPE` in some cases. In other cases, it works initally, but `certutil -store MY` shows `ERROR: Could not verify certificate public key against private key`. Others have seen a `NTE_BAD_TYPE` error during import already. TPMImport correctly imports these keys.
 
 ## Known Issues
 
