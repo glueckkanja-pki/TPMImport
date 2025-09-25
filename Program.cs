@@ -26,6 +26,35 @@ namespace TPMImport
             }
         }
 
+        private static void PrintExportPolicy(CngKey key)
+        {
+            CngProperty NewExportPolicy = key.GetProperty("Export Policy", CngPropertyOptions.None);
+            string exportPolicyValue = string.Join('-',
+                NewExportPolicy.GetValue()
+                    .Select(valueByte => valueByte.ToString()));
+            Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
+        }
+
+        private static void DeleteIfOnTPM(X509Store store, X509Certificate2 cert, CngKey key)
+        {
+            if (key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
+                return; // key not stored in TPM
+
+            Console.WriteLine("Deleting " + cert.Subject + " with name " + key.KeyName + "\n");
+            // delete certificate
+            store.Remove(cert);
+            // delete associated CNG key
+            key.Delete();
+        }
+
+        private static void AllowPlaintextExportWorkaround(AsymmetricAlgorithm key)
+        {
+            // workaround for missing AllowPlaintextExport
+            PbeParameters encParams = new(PbeEncryptionAlgorithm.Aes128Cbc, HashAlgorithmName.SHA256, 1);
+            byte[] exportedKey = key.ExportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, encParams);
+            key.ImportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, exportedKey, out _);
+        }
+
         /** Delete both the certificate & private key in TPM */
         private static void DeleteCngCertificate(bool fUser, string Thumbprint)
         {
@@ -41,18 +70,13 @@ namespace TPMImport
                 if (!cert.HasPrivateKey)
                     continue; // private key missing
 
-                var priv_key = (RSACng)cert.GetRSAPrivateKey();
-                if (priv_key == null)
-                    continue; // unsupported key type
+                var priv_key_rsa = (RSACng)cert.GetRSAPrivateKey();
+                if (priv_key_rsa != null)
+                    DeleteIfOnTPM(store, cert, priv_key_rsa.Key);
 
-                if (priv_key.Key.Provider != CngProvider.MicrosoftPlatformCryptoProvider)
-                    continue; // key not stored in TPM
-
-                Console.WriteLine("Deleting " + cert.Subject + " with name " + priv_key.Key.KeyName + "\n");
-                // delete certificate
-                store.Remove(cert);
-                // delete associated CNG key
-                priv_key.Key.Delete();
+                var priv_key_ecdsa = (ECDsaCng)cert.GetECDsaPrivateKey();
+                if (priv_key_ecdsa != null)
+                    DeleteIfOnTPM(store, cert, priv_key_ecdsa.Key);
 
                 return;
             }
@@ -128,16 +152,33 @@ namespace TPMImport
                 return;
             }
 
-            using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
-            if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+            CngAlgorithm algorithm = default(CngAlgorithm);
+            byte[] keyData = null;
             {
-                // workaround for missing AllowPlaintextExport
-                PbeParameters encParams = new(PbeEncryptionAlgorithm.Aes128Cbc, HashAlgorithmName.SHA256, 1);
-                byte[] exportedKey = rsaPrivKey.ExportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, encParams);
-                rsaPrivKey.ImportEncryptedPkcs8PrivateKey(PasswordForTemporaryKeys, exportedKey, out _);
+                using var rsaPrivKey = (RSACng)cert.GetRSAPrivateKey();
+                if (rsaPrivKey != null)
+                {
+                    if (!rsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+                        AllowPlaintextExportWorkaround(rsaPrivKey);
+
+                    algorithm = CngAlgorithm.Rsa;
+                    keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
+                }
+
+                using var ecdsaPrivKey = (ECDsaCng)cert.GetECDsaPrivateKey();
+                if (ecdsaPrivKey != null)
+                {
+                    if (!ecdsaPrivKey.Key.ExportPolicy.HasFlag(CngExportPolicies.AllowPlaintextExport))
+                        AllowPlaintextExportWorkaround(ecdsaPrivKey);
+
+                    algorithm = CngAlgorithm.ECDsa;
+                    keyData = ecdsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
+                }
+
+                if (algorithm == default(CngAlgorithm))
+                    throw new ArgumentException("Unsuported certificate type");
             }
 
-            byte[] keyData = rsaPrivKey.Key.Export(CngKeyBlobFormat.GenericPrivateBlob);
             CngKeyCreationParameters keyParams = new()
             {
                 ExportPolicy = CngExportPolicies.None,
@@ -157,14 +198,14 @@ namespace TPMImport
             //keyParams.Parameters.Add(new CngProperty("Security Descr", binSDL, (CngPropertyOptions) 0x44)); // 0x44 = DACL_SECURITY_INFORMATION | NCRYPT_SILENT_FLAG
 
             if (fVerbose)
-                Console.WriteLine($"Creating RSA CngKeyObject with TPM-Import-Key-{cert.Thumbprint}");
+                Console.WriteLine($"Creating CngKeyObject with TPM-Import-Key-{cert.Thumbprint}");
 
             CngKey key = null;
             string keyName = $"TPM-Import-Key-{cert.Thumbprint}";
 
             try
             {
-                key = CngKey.Create(CngAlgorithm.Rsa, keyName, keyParams);
+                key = CngKey.Create(algorithm, keyName, keyParams);
 
 
                 //            key = CngKey.Open($"TPM-Import-Key-{cert.Thumbprint}", new CngProvider("Microsoft Platform Crypto Provider"), CngKeyOpenOptions.MachineKey);
@@ -181,15 +222,18 @@ namespace TPMImport
                 CertificateExtensionsCommon.AddCngKey(cngCert, key);
 
                 if (fVerbose)
-                    using (RSACng keyOfCopiedCertificate = cngCert.GetRSAPrivateKey() as RSACng)
+                {
                     {
-                        CngProperty NewExportPolicy = keyOfCopiedCertificate.Key.GetProperty("Export Policy", CngPropertyOptions.None);
-                        string exportPolicyValue = string.Join('-',
-                            NewExportPolicy.GetValue()
-                                .Select(valueByte => valueByte.ToString()));
-                        Console.WriteLine($"Export Policy of copied key: {exportPolicyValue}");
-
+                        using var keyOfCopiedCertificate = (RSACng)cngCert.GetRSAPrivateKey();
+                        if (keyOfCopiedCertificate != null)
+                            PrintExportPolicy(keyOfCopiedCertificate.Key);
                     }
+                    {
+                        using var keyOfCopiedCertificate = (ECDsaCng)cngCert.GetECDsaPrivateKey();
+                        if (keyOfCopiedCertificate != null)
+                            PrintExportPolicy(keyOfCopiedCertificate.Key);
+                    }
+                }
 
                 using X509Store store = new(StoreName.My, fUser ? StoreLocation.CurrentUser : StoreLocation.LocalMachine);
                 store.Open(OpenFlags.ReadWrite);
