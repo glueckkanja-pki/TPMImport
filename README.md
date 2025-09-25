@@ -27,6 +27,8 @@ CertUtil: The requested operation is not supported.
 
 If you have a recent version of Windows 11 and want to import an RSA key into the TPM, it is likely better to use certutil instead of TPMImport, as it comes pre-installed with Windows.
 
+Certutil also doesn't seem to support TPM import of EC-DSA keys, since it fails with `NTE_BAD_TYPE`.
+
 ## Known Issues
 
 When deleting the certificate via the Windows UI or similar means, the TPM still keeps the private key. This is different than other KSPs and CSPs and likely depends only on the KSP and not the way TPMImport imports the key. Read [Issue #4](https://github.com/glueckkanja-pki/TPMImport/issues/4) for more details.
