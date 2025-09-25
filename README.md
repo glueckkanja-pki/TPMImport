@@ -1,5 +1,5 @@
 # TPMImport
-Imports certificates from PFX files into the Microsoft Platform Crypto Provider, so that the private key is stored in TPM.
+Imports certificates from PFX files into the _Microsoft Platform Crypto Provider_, so that the private key is stored in TPM.
 
 ## TPMImport Usage
 
