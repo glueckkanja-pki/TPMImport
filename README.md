@@ -5,6 +5,9 @@ Imports certificates from PFX files into the _Microsoft Platform Crypto Provider
 
 `TPMImport [-user] [-delete] [-v] [PFXPath|-b EncodedPfx] [PFXPassword]`
 
+TPMImport support keys in the following formats:
+* Rivest–Shamir–Adleman (RSA)
+* Elliptic Curve Digital Signature Algorithm (EC-DSA)
 
 ## Relation to certutil
 
