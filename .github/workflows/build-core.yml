@@ -11,7 +11,7 @@ jobs:
     container: mcr.microsoft.com/dotnet/sdk:8.0
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install dependencies
       run: dotnet restore -r win-x64 TPMImport.csproj
