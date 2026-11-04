@@ -7,8 +7,13 @@ name: Release Current .NET Core Version
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   release:
+    permissions:
+      actions: read      # gh run list / gh run download
+      contents: write    # gh release create / upload / edit
     runs-on: ubuntu-latest
     steps:
       - name: Download artifact from build workflow
@@ -36,15 +41,12 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Create Draft Release
-        id: create_release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.create_tag.outputs.tag }}
-          release_name: ${{ steps.create_tag.outputs.tag }}
-          draft: true
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_CREATE_TAG_OUTPUTS_TAG: ${{ steps.create_tag.outputs.tag }}
+        shell: bash
+        run: |
+          gh release create "${STEPS_CREATE_TAG_OUTPUTS_TAG}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "${STEPS_CREATE_TAG_OUTPUTS_TAG}" --notes "" --draft
 
           # Some debug output
       - name: "[Debug] Where Are We"
@@ -53,14 +55,12 @@ jobs:
         run: ls -Rs
           
       - name: Upload Artifacts to Release
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: publish/tpmimport-win-x64/TPMImport.exe
-          asset_name: TPMImport.exe
-          asset_content_type: application/vnd.microsoft.portable-executable
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_CREATE_TAG_OUTPUTS_TAG: ${{ steps.create_tag.outputs.tag }}
+        shell: bash
+        run: |
+          gh release upload "${STEPS_CREATE_TAG_OUTPUTS_TAG}" publish/tpmimport-win-x64/TPMImport.exe --repo "$GITHUB_REPOSITORY"
 
       - name: Publish Release
         env:
