@@ -10,6 +10,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
 
   # Maintain dependencies for NuGet
   - package-ecosystem: "nuget"
@@ -18,3 +20,5 @@ updates:
       interval: "weekly"
     # Only security updates for nuget
     open-pull-requests-limit: 0
+    cooldown:
+      default-days: 7
