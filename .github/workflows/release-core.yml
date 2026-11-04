@@ -37,7 +37,7 @@ jobs:
 
       - name: Create Draft Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -53,7 +53,7 @@ jobs:
         run: ls -Rs
           
       - name: Upload Artifacts to Release
-        uses: actions/upload-release-asset@v1.0.2
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -65,6 +65,7 @@ jobs:
       - name: Publish Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_CREATE_TAG_OUTPUTS_TAG: ${{ steps.create_tag.outputs.tag }}
         shell: bash
         run: |
-          gh release edit "${{ steps.create_tag.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --draft=false
+          gh release edit "${STEPS_CREATE_TAG_OUTPUTS_TAG}" --repo "$GITHUB_REPOSITORY" --draft=false
